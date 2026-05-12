@@ -485,8 +485,9 @@ body {
 // ═══════════════════════════════════════════════════════════════
 // ✏️  PASTE YOUR API KEYS HERE
 // ═══════════════════════════════════════════════════════════════
-const CLAUDE_API_KEY     = "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";
-const ELEVENLABS_API_KEY = "sk_dbcbae5013793bb752841480500634811961bfcacf003e3a";
+// API keys removed from frontend — all handled securely by Netlify Functions
+const CLAUDE_API_KEY     = "managed-by-netlify";
+const ELEVENLABS_API_KEY = "managed-by-netlify";
 // D-ID keys are now stored securely in Netlify environment variables
 // You do NOT need to paste them here anymore — see setup instructions
 const DID_EMAIL   = "";  // leave blank
@@ -541,9 +542,9 @@ function buildSystemPrompt() {
 }
 
 function checkKeys() {
-  const missing = CLAUDE_API_KEY.includes('paste') || ELEVENLABS_API_KEY.includes('paste');
-  document.getElementById('setupBanner').style.display = missing ? 'block' : 'none';
-  return !missing;
+  // Keys are managed server-side via Netlify environment variables
+  document.getElementById('setupBanner').style.display = 'none';
+  return true;
 }
 
 function toggleSettings() {
@@ -635,22 +636,20 @@ async function sendMessage() {
 
 // ── CLAUDE API ─────────────────────────────────────────────────
 async function callClaude() {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':CLAUDE_API_KEY,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({
-      model:'claude-sonnet-4-6',
-      max_tokens:180,
-      system:buildSystemPrompt(),
-      messages:conversationHistory
+  const res = await fetch('/.netlify/functions/did-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      service: 'claude',
+      body: {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 180,
+        system: buildSystemPrompt(),
+        messages: conversationHistory
+      }
     })
   });
-  if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message); }
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || e.error); }
   return (await res.json()).content[0].text;
 }
 
@@ -779,18 +778,25 @@ async function playDIDVideo(url) {
 // ── ELEVENLABS (audio only fallback) ──────────────────────────
 async function getElevenLabsBase64(text) {
   try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_IDS[currentVoice]}`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','xi-api-key':ELEVENLABS_API_KEY},
-      body:JSON.stringify({ text, model_id:'eleven_multilingual_v2', voice_settings:{stability:.55,similarity_boost:.8,style:.3} })
+    const res = await fetch('/.netlify/functions/did-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service: 'elevenlabs',
+        body: {
+          voiceId: VOICE_IDS[currentVoice],
+          payload: {
+            text,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: { stability: .55, similarity_boost: .8, style: .3 }
+          }
+        }
+      })
     });
     if (!res.ok) return null;
-    const buffer = await res.arrayBuffer();
-    const bytes  = new Uint8Array(buffer);
-    let b64 = '';
-    for (let i=0; i<bytes.length; i++) b64 += String.fromCharCode(bytes[i]);
-    return btoa(b64);
-  } catch(e) { return null; }
+    const data = await res.json();
+    return data.audio || null;
+  } catch(e) { console.warn('ElevenLabs proxy error:', e); return null; }
 }
 
 async function speakElevenLabs(text) {
