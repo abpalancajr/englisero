@@ -1,39 +1,100 @@
+// Netlify Function — proxies ALL API calls server-side
+// Handles Claude, ElevenLabs, and D-ID
+// All API keys live here as Netlify environment variables — never in the browser
+
 exports.handler = async (event) => {
-  const headers = {
+  const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
+
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+    return { statusCode: 200, headers: corsHeaders, body: '' };
   }
+
   try {
-    const { action, id, body: reqBody } = JSON.parse(event.body || '{}');
-    const DID_EMAIL   = process.env.DID_EMAIL;
-    const DID_API_KEY = process.env.DID_API_KEY;
-    if (!DID_EMAIL || !DID_API_KEY) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'D-ID credentials not set' }) };
+    const { service, action, id, body: reqBody } = JSON.parse(event.body || '{}');
+
+    // ── CLAUDE ──────────────────────────────────────────────────
+    if (service === 'claude') {
+      const key = process.env.CLAUDE_API_KEY;
+      if (!key) return errRes(corsHeaders, 'CLAUDE_API_KEY not set in Netlify environment variables');
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(reqBody)
+      });
+      const data = await response.json();
+      return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify(data) };
     }
-    const authHeader = 'Basic ' + Buffer.from(DID_EMAIL + ':' + DID_API_KEY).toString('base64');
-    let url, method, fetchBody;
-    if (action === 'create') {
-      url = 'https://api.d-id.com/talks';
-      method = 'POST';
-      fetchBody = JSON.stringify(reqBody);
-    } else if (action === 'poll') {
-      url = `https://api.d-id.com/talks/${id}`;
-      method = 'GET';
-    } else {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
+
+    // ── ELEVENLABS ───────────────────────────────────────────────
+    if (service === 'elevenlabs') {
+      const key = process.env.ELEVENLABS_API_KEY;
+      if (!key) return errRes(corsHeaders, 'ELEVENLABS_API_KEY not set in Netlify environment variables');
+
+      const { voiceId, payload } = reqBody;
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'xi-api-key': key },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errData = await response.text();
+        return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify({ error: errData }) };
+      }
+
+      const buffer = await response.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
+      return {
+        statusCode: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio: base64 })
+      };
     }
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-      ...(fetchBody ? { body: fetchBody } : {})
-    });
-    const data = await response.json();
-    return { statusCode: response.status, headers, body: JSON.stringify(data) };
-  } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+
+    // ── D-ID ─────────────────────────────────────────────────────
+    if (service === 'did') {
+      const didEmail = process.env.DID_EMAIL;
+      const didKey   = process.env.DID_API_KEY;
+      if (!didEmail || !didKey) return errRes(corsHeaders, 'DID_EMAIL or DID_API_KEY not set');
+
+      const authHeader = 'Basic ' + Buffer.from(didEmail + ':' + didKey).toString('base64');
+
+      if (action === 'create') {
+        const response = await fetch('https://api.d-id.com/talks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+          body: JSON.stringify(reqBody)
+        });
+        const data = await response.json();
+        return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify(data) };
+      }
+
+      if (action === 'poll') {
+        const response = await fetch(`https://api.d-id.com/talks/${id}`, {
+          headers: { 'Authorization': authHeader }
+        });
+        const data = await response.json();
+        return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify(data) };
+      }
+    }
+
+    return errRes(corsHeaders, 'Unknown service: ' + service);
+
+  } catch (e) {
+    console.error('Proxy error:', e);
+    return errRes(corsHeaders, e.message);
   }
 };
+
+function errRes(headers, message) {
+  return { statusCode: 500, headers, body: JSON.stringify({ error: message }) };
+}
