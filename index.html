@@ -690,7 +690,7 @@ async function tryDIDLipSync(text) {
     const createRes = await fetch('/.netlify/functions/did-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', body: body })
+      body: JSON.stringify({ service: 'did', action: 'create', body: body })
     });
 
     const createData = await createRes.json();
@@ -729,7 +729,7 @@ async function pollDID(id, attempts=30) {
       const res = await fetch('/.netlify/functions/did-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'poll', id: id })
+        body: JSON.stringify({ service: 'did', action: 'poll', id: id })
       });
       const data = await res.json();
       console.log('[D-ID] Poll ' + (i+1) + ':', data.status, data.result_url || '');
