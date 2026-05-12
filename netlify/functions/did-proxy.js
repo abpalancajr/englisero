@@ -86,19 +86,43 @@ exports.handler = async (event) => {
       const authHeader = 'Basic ' + Buffer.from(didEmail.trim() + ':' + didKey.trim()).toString('base64');
 
       if (action === 'create') {
-        const response = await fetch('https://api.d-id.com/talks', {
+        // Try both auth formats — D-ID key may already be pre-encoded
+        const authBasic   = 'Basic ' + Buffer.from(didEmail.trim() + ':' + didKey.trim()).toString('base64');
+        const authDirect  = 'Basic ' + didKey.trim();
+
+        // First try with direct key (pre-encoded format)
+        let response = await fetch('https://api.d-id.com/talks', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+          headers: { 'Content-Type': 'application/json', 'Authorization': authDirect },
           body: JSON.stringify(reqBody)
         });
+
+        // If 401, try with re-encoded format
+        if (response.status === 401) {
+          console.log('Direct auth failed, trying re-encoded...');
+          response = await fetch('https://api.d-id.com/talks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authBasic },
+            body: JSON.stringify(reqBody)
+          });
+        }
+
         const data = await response.json();
+        console.log('D-ID create status:', response.status, 'auth used:', response.status === 200 ? 'success' : 'both failed');
         return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify(data) };
       }
 
       if (action === 'poll') {
-        const response = await fetch(`https://api.d-id.com/talks/${id}`, {
-          headers: { 'Authorization': authHeader }
+        const authDirect = 'Basic ' + didKey.trim();
+        const authBasic  = 'Basic ' + Buffer.from(didEmail.trim() + ':' + didKey.trim()).toString('base64');
+        let response = await fetch(`https://api.d-id.com/talks/${id}`, {
+          headers: { 'Authorization': authDirect }
         });
+        if (response.status === 401) {
+          response = await fetch(`https://api.d-id.com/talks/${id}`, {
+            headers: { 'Authorization': authBasic }
+          });
+        }
         const data = await response.json();
         return { statusCode: response.status, headers: corsHeaders, body: JSON.stringify(data) };
       }
