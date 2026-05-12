@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Englisero</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: radial-gradient(ellipse at top, #1a1a2e 0%, #0d0d1a 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════
+   IPOD SHELL
+══════════════════════════════════ */
+.ipod {
+  width: 320px;
+  height: 650px;
+  background: linear-gradient(170deg, #f2f2f2 0%, #d8d8d8 40%, #c8c8c8 100%);
+  border-radius: 40px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.65) inset,
+    0 2px 4px rgba(255,255,255,0.8) inset,
+    0 36px 100px rgba(0,0,0,0.78),
+    0 12px 32px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+.ipod::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  border-radius: 40px 40px 60% 60%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%);
+  pointer-events: none; z-index: 100;
+}
+.hold-switch {
+  position: absolute; top: 22px; right: -7px;
+  width: 14px; height: 5px; background: #999;
+  border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 200;
+}
+
+/* ══════════════════════════════════
+   TOP BAR
+══════════════════════════════════ */
+.ipod-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 6px; flex-shrink: 0; z-index: 10;
+}
+.brand { font-size: 1.05rem; font-weight: 900; color: #1a1a2e; letter-spacing: -0.5px; }
+.brand span { color: #0077B6; }
+.streak-pill {
+  background: #1a1a2e; color: #FFB830;
+  font-size: 0.68rem; font-weight: 800; padding: 3px 10px; border-radius: 20px;
+}
+
+/* ══════════════════════════════════
+   SCREEN  —  fills most of top
+══════════════════════════════════ */
+.screen {
+  flex: 1;
+  position: relative; overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 2px #888 inset;
+  margin: 0 14px 0;
+  border-radius: 10px;
+}
+
+/* Themed backgrounds */
+.screen-bg { position: absolute; inset: 0; transition: background 0.8s ease; }
+.screen-bg.greetings { background: linear-gradient(180deg,#0a1020 0%,#0d2040 50%,#060d1a 100%); }
+.screen-bg.work      { background: linear-gradient(180deg,#081008 0%,#0f2810 50%,#040c04 100%); }
+.screen-bg.shopping  { background: linear-gradient(180deg,#120820 0%,#200f3c 50%,#080410 100%); }
+.screen-bg.travel    { background: linear-gradient(180deg,#100e00 0%,#2c2200 50%,#0a0800 100%); }
+.screen-bg.family    { background: linear-gradient(180deg,#150404 0%,#320a0a 50%,#0c0202 100%); }
+
+/* Status bar */
+.screen-status {
+  position: absolute; top: 0; left: 0; right: 0; padding: 7px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(0,0,0,0.5); z-index: 20;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.status-dot.thinking { background: #FFB830; animation: sdp .8s infinite alternate; }
+.status-dot.speaking { background: #60a5fa; animation: sdp .5s infinite alternate; }
+@keyframes sdp { from{opacity:1} to{opacity:0.2} }
+.status-row { display: flex; align-items: center; gap: 6px; }
+.status-text { font-size: .62rem; color: rgba(255,255,255,.6); font-weight: 700; letter-spacing: .5px; }
+.screen-time { font-size: .62rem; color: rgba(255,255,255,.45); font-weight: 700; }
+
+/* ── VIDEO CALL AVATAR ── */
+.video-wrap {
+  position: absolute;
+  /* fills the whole screen like a video call */
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3;
+}
+
+/* The "camera feed" — full bleed portrait */
+.avatar-video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 0;
+}
+
+/* D-ID generated video replaces static image when speaking */
+#didVideo {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none; /* shown when D-ID stream is active */
+  z-index: 4;
+}
+
+/* Static avatar shown when not speaking */
+.avatar-static {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3;
+  background: linear-gradient(180deg, #1a3060 0%, #0d1f40 100%);
+}
+.avatar-photo {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+  animation: breathe 3.5s ease-in-out infinite;
+}
+.avatar-photo.speaking { animation: none; }
+.avatar-fallback {
+  font-size: 7rem;
+  display: none;
+  animation: breathe 3.5s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.018); }
+}
+
+/* Subtle vignette over the video */
+.video-vignette {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+}
+
+/* Name badge — bottom left like a video call */
+.caller-badge {
+  position: absolute; bottom: 54px; left: 10px; z-index: 10;
+  display: flex; flex-direction: column; gap: 1px;
+}
+.caller-name {
+  font-size: .8rem; font-weight: 900; color: #fff;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+  letter-spacing: .5px;
+}
+.caller-role {
+  font-size: .6rem; color: rgba(255,255,255,.55); font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+/* Sound wave — bottom right corner */
+.soundwave-corner {
+  position: absolute; bottom: 56px; right: 10px; z-index: 10;
+  display: flex; align-items: flex-end; gap: 3px; height: 18px;
+}
+.soundwave-corner span {
+  display: block; width: 3px; border-radius: 3px;
+  background: rgba(96,165,250,.8); height: 4px;
+}
+.soundwave-corner.active span:nth-child(1){animation:bar .8s 0.0s ease-in-out infinite alternate}
+.soundwave-corner.active span:nth-child(2){animation:bar .8s 0.1s ease-in-out infinite alternate}
+.soundwave-corner.active span:nth-child(3){animation:bar .8s 0.2s ease-in-out infinite alternate}
+.soundwave-corner.active span:nth-child(4){animation:bar .8s 0.3s ease-in-out infinite alternate}
+.soundwave-corner.active span:nth-child(5){animation:bar .8s 0.4s ease-in-out infinite alternate}
+@keyframes bar{from{height:4px}to{height:16px}}
+
+/* Speech text — bottom strip */
+.screen-speech {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+  background: linear-gradient(0deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.6) 60%, transparent 100%);
+  padding: 18px 12px 10px;
+}
+.screen-speech p {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: .76rem; color: rgba(255,255,255,.92);
+  line-height: 1.55; text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.screen-speech p.thinking::after {
+  content: '▌'; animation: blink .7s step-end infinite; color: #60a5fa;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* ── SETTINGS OVERLAY ── */
+.settings-overlay {
+  position: absolute; inset: 0; z-index: 50;
+  background: rgba(6,10,24,0.96); backdrop-filter: blur(10px);
+  display: flex; flex-direction: column; padding: 14px 16px 16px; gap: 14px;
+  transform: translateY(100%); transition: transform .38s cubic-bezier(.4,0,.2,1);
+  border-radius: 10px;
+}
+.settings-overlay.open { transform: translateY(0); }
+.settings-header { display: flex; justify-content: space-between; align-items: center; }
+.settings-title-text { font-size: .68rem; font-weight: 900; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: 1px; }
+.settings-close {
+  background: rgba(255,255,255,.1); border: none; color: rgba(255,255,255,.6);
+  width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+  font-size: .85rem; display: flex; align-items: center; justify-content: center;
+}
+.settings-close:hover { background: rgba(255,255,255,.2); }
+.section-label { font-size: .58rem; font-weight: 900; color: rgba(255,255,255,.3); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+.voice-toggle { display: flex; background: rgba(255,255,255,.07); border-radius: 10px; padding: 3px; }
+.voice-opt {
+  flex: 1; padding: 9px 4px; border-radius: 8px; border: none; background: transparent; cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: .76rem; color: rgba(255,255,255,.45);
+  transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.voice-opt.active { background: linear-gradient(135deg,#0077B6,#0096C7); color: #fff; box-shadow: 0 3px 10px rgba(0,119,182,.4); }
+.topics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.topic-btn {
+  padding: 10px 8px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05); cursor: pointer;
+  font-family: 'Nunito',sans-serif; font-weight: 800; font-size: .74rem; color: rgba(255,255,255,.5);
+  transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.topic-btn:hover { border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.8); }
+.topic-btn.active { border-color: #FFB830; background: rgba(255,184,48,.13); color: #FFB830; }
+.topic-btn.full { grid-column: 1/-1; }
+.settings-hint { margin-top: auto; text-align: center; font-size: .58rem; color: rgba(255,255,255,.2); font-weight: 700; }
+
+/* ══════════════════════════════════
+   MIDDLE: TEXT INPUT  (below screen)
+══════════════════════════════════ */
+.input-section {
+  padding: 8px 14px 4px;
+  flex-shrink: 0;
+}
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+.ipod-input {
+  flex: 1; background: rgba(0,0,0,.09); border: 1.5px solid rgba(0,0,0,.16);
+  border-radius: 12px; padding: 9px 12px;
+  font-family: 'Nunito',sans-serif; font-size: .82rem; font-weight: 600; color: #1a1a2e;
+  outline: none; resize: none; min-height: 38px; max-height: 70px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1) inset; transition: border-color .2s;
+}
+.ipod-input:focus { border-color: #0077B6; }
+.ipod-input::placeholder { color: #aaa; }
+.send-btn {
+  width: 38px; height: 38px; border-radius: 12px; border: none;
+  background: linear-gradient(135deg,#0077B6,#0096C7); color: white; font-size: 1rem; cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,119,182,.4); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .15s;
+}
+.send-btn:hover  { transform: scale(1.05); }
+.send-btn:active { transform: scale(.97); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ══════════════════════════════════
+   DIVIDER
+══════════════════════════════════ */
+.divider {
+  height: 1px; margin: 0 24px;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.15), transparent);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════
+   BOTTOM: CLICK WHEEL
+══════════════════════════════════ */
+.wheel-section {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 6px 0 18px;
+  flex-shrink: 0; gap: 0;
+}
+.wheel { position: relative; width: 158px; height: 158px; }
+.wheel-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(145deg,#e2e2e2 0%,#b8b8b8 50%,#d0d0d0 100%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.75) inset,
+    0 4px 10px rgba(0,0,0,.28),
+    0 1px 2px rgba(255,255,255,.85);
+}
+.wheel-label {
+  position: absolute; font-size: .5rem; font-weight: 900;
+  color: #444; text-transform: uppercase; letter-spacing: .5px;
+  text-align: center; pointer-events: none; line-height: 1.2;
+}
+.wheel-label.top    { top: 8px;    left: 50%; transform: translateX(-50%); }
+.wheel-label.bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.wheel-label.left   { left: 5px;   top: 50%; transform: translateY(-50%); }
+.wheel-label.right  { right: 5px;  top: 50%; transform: translateY(-50%); }
+.wheel-btn { position: absolute; cursor: pointer; z-index: 5; }
+.wheel-btn:active { opacity: .4; }
+.wheel-btn.top-btn    { top: 0;    left: 25%; width: 50%; height: 33%; border-radius: 50% 50% 0 0; }
+.wheel-btn.bottom-btn { bottom: 0; left: 25%; width: 50%; height: 33%; border-radius: 0 0 50% 50%; }
+.wheel-btn.left-btn   { left: 0;   top: 25%; width: 33%; height: 50%; border-radius: 50% 0 0 50%; }
+.wheel-btn.right-btn  { right: 0;  top: 25%; width: 33%; height: 50%; border-radius: 0 50% 50% 0; }
+.center-btn {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 60px; height: 60px; border-radius: 50%;
+  background: linear-gradient(145deg,#eaeaea,#cacaca);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.85) inset, 0 3px 8px rgba(0,0,0,.22), 0 1px 3px rgba(255,255,255,.95);
+  cursor: pointer; border: none; z-index: 10;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1px;
+  font-family: 'Nunito',sans-serif; font-weight: 900; font-size: .52rem;
+  color: #333; letter-spacing: .5px; text-transform: uppercase; transition: all .1s;
+}
+.center-btn:active {
+  box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset, 0 1px 4px rgba(0,0,0,.2);
+  transform: translate(-50%,-50%) scale(.97);
+}
+.center-icon { font-size: 1rem; }
+.connector-nub {
+  width: 34px; height: 6px; background: linear-gradient(90deg,#aaa,#ddd,#aaa);
+  border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.2); margin-top: 8px;
+}
+
+/* Setup banner */
+.setup-banner {
+  position: absolute; top: 0; left: 0; right: 0;
+  background: linear-gradient(90deg,#FFF3CD,#FFE69C);
+  border-bottom: 1.5px solid #FFB830;
+  padding: 6px 14px; font-size: .65rem; color: #856404; font-weight: 700;
+  z-index: 150; display: none; border-radius: 40px 40px 0 0;
+}
+
+/* D-ID speaking ring */
+.speaking-ring {
+  position: absolute; inset: -3px; border-radius: 50%;
+  border: 3px solid transparent;
+  animation: speakRing 1s linear infinite;
+  display: none;
+}
+.speaking-ring.active { display: block; }
+@keyframes speakRing {
+  0%   { border-color: rgba(96,165,250,.8) transparent transparent transparent; transform: rotate(0deg); }
+  100% { border-color: rgba(96,165,250,.8) transparent transparent transparent; transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<div class="ipod">
+  <div class="hold-switch"></div>
+  <div class="setup-banner" id="setupBanner">
+    ⚙️ Open in Notepad → paste your 3 API keys → save → re-upload to Netlify
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="ipod-topbar">
+    <div class="brand">Englis<span>ero</span></div>
+    <div class="streak-pill">🔥 <span id="streakCount">1</span> day streak</div>
+  </div>
+
+  <!-- ══ SCREEN ══ -->
+  <div class="screen">
+    <div class="screen-bg greetings" id="screenBg"></div>
+
+    <!-- Status bar -->
+    <div class="screen-status">
+      <div class="status-row">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">READY</span>
+      </div>
+      <span class="screen-time" id="clockTime">--:--</span>
+    </div>
+
+    <!-- Full-screen avatar (video-call style) -->
+    <div class="video-wrap">
+      <!-- Static photo (shown when idle) -->
+      <div class="avatar-static" id="avatarStatic">
+        <img class="avatar-photo" id="avatarPhoto"
+          src="https://i.imgur.com/hJg0Ud3.jpeg"
+          alt="Avatar"
+          onerror="this.style.display='none'; document.getElementById('avatarFallback').style.display='flex';"
+        />
+        <div class="avatar-fallback" id="avatarFallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:7rem;">👩‍🏫</div>
+      </div>
+      <!-- D-ID talking video (shown when speaking) -->
+      <video id="didVideo" autoplay playsinline></video>
+    </div>
+
+    <!-- Vignette overlay -->
+    <div class="video-vignette"></div>
+
+    <!-- Caller badge (bottom-left like a video call) -->
+    <div class="caller-badge">
+      <div class="caller-name" id="callerName">Ate Ana</div>
+      <div class="caller-role" id="callerRole">Your English Teacher</div>
+    </div>
+
+    <!-- Soundwave (bottom-right) -->
+    <div class="soundwave-corner" id="soundwave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <!-- Speech text -->
+    <div class="screen-speech">
+      <p id="speechText">Magandang araw! Good day! I am Ate Ana. Ready to practice English today? 😊</p>
+    </div>
+
+    <!-- Settings overlay (slides up on MENU) -->
+    <div class="settings-overlay" id="settingsOverlay">
+      <div class="settings-header">
+        <span class="settings-title-text">⚙ Settings</span>
+        <button class="settings-close" onclick="toggleSettings()">✕</button>
+      </div>
+      <div>
+        <div class="section-label">Choose your teacher</div>
+        <div class="voice-toggle">
+          <button class="voice-opt active" id="btnFemale" onclick="selectVoice('female')">👩 Ate Ana</button>
+          <button class="voice-opt"        id="btnMale"   onclick="selectVoice('male')">👨 Kuya Jose</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">Lesson topic</div>
+        <div class="topics-grid">
+          <button class="topic-btn active" id="tp-greetings" onclick="selectTopic(this,'greetings')">👋 Greetings</button>
+          <button class="topic-btn"        id="tp-work"      onclick="selectTopic(this,'work')">💼 Work / BPO</button>
+          <button class="topic-btn"        id="tp-shopping"  onclick="selectTopic(this,'shopping')">🛒 Shopping</button>
+          <button class="topic-btn"        id="tp-travel"    onclick="selectTopic(this,'travel')">✈️ Travel / OFW</button>
+          <button class="topic-btn full"   id="tp-family"    onclick="selectTopic(this,'family')">👨‍👩‍👧 Family</button>
+        </div>
+      </div>
+      <div class="settings-hint">◀ ▶ cycles topics · MENU opens this panel</div>
+    </div>
+
+  </div><!-- /screen -->
+
+  <!-- ══ TEXT INPUT (below screen) ══ -->
+  <div class="input-section">
+    <div class="input-row">
+      <textarea
+        id="userInput"
+        class="ipod-input"
+        placeholder="Type in English or Tagalog..."
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="divider"></div>
+
+  <!-- ══ CLICK WHEEL (at bottom) ══ -->
+  <div class="wheel-section">
+    <div class="wheel">
+      <div class="wheel-ring"></div>
+      <div class="wheel-label top">Menu</div>
+      <div class="wheel-label bottom">Play ▶</div>
+      <div class="wheel-label left">◀◀</div>
+      <div class="wheel-label right">▶▶</div>
+      <div class="wheel-btn top-btn"    onclick="wheelAction('menu')"></div>
+      <div class="wheel-btn bottom-btn" onclick="wheelAction('play')"></div>
+      <div class="wheel-btn left-btn"   onclick="wheelAction('prev')"></div>
+      <div class="wheel-btn right-btn"  onclick="wheelAction('next')"></div>
+      <button class="center-btn" id="centerBtn" onclick="sendMessage()">
+        <span class="center-icon">➤</span>
+        Send
+      </button>
+    </div>
+    <div class="connector-nub"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ✏️  PASTE YOUR API KEYS HERE
+// ═══════════════════════════════════════════════════════════════
+const CLAUDE_API_KEY     = "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";
+const ELEVENLABS_API_KEY = "sk_dbcbae5013793bb752841480500634811961bfcacf003e3a";
+// D-ID keys are now stored securely in Netlify environment variables
+// You do NOT need to paste them here anymore — see setup instructions
+const DID_EMAIL   = "";  // leave blank
+const DID_API_KEY = "set-in-netlify-env"; // leave as-is
+
+// Avatar image URLs for D-ID (must be publicly accessible HTTPS image)
+// Replace with a real portrait photo URL for lip-sync to work
+const AVATAR_IMAGES = {
+  female: "https://i.imgur.com/hJg0Ud3.jpeg",
+  male:   "https://i.imgur.com/hJg0Ud3.jpeg"
+};
+
+const VOICE_IDS = {
+  female: "EXAVITQu4vr4xnSDxMaL",
+  male:   "ErXwobaYiN019PkySvjV"
+};
+// ═══════════════════════════════════════════════════════════════
+
+let currentVoice = 'female';
+let currentTopic = 'greetings';
+let messagesCount = 0;
+let conversationHistory = [];
+let isProcessing = false;
+let streakCount = 1;
+let settingsOpen = false;
+const topics = ['greetings','work','shopping','travel','family'];
+
+const AVATAR_CONFIG = {
+  female: { name:'Ate Ana',   emoji:'👩‍🏫', role:'Your English Teacher' },
+  male:   { name:'Kuya Jose', emoji:'👨‍🏫', role:'Your English Coach'   }
+};
+const TOPIC_PROMPTS = {
+  greetings: 'greetings, introductions, and basic pleasantries',
+  work:      'workplace English, BPO, customer service calls, professional emails',
+  shopping:  'shopping, asking prices, bargaining, describing items',
+  travel:    'travel, OFW situations, airports, asking for directions',
+  family:    'family, describing relatives, talking about home and daily life'
+};
+
+function buildSystemPrompt() {
+  return `You are ${AVATAR_CONFIG[currentVoice].name}, a warm and encouraging English teacher for Filipino learners.
+- Be like a friendly ate/kuya who genuinely cares
+- Teach English through natural conversation about: ${TOPIC_PROMPTS[currentTopic]}
+- Understand Tagalog but always respond primarily in English
+- When user writes Tagalog, gently show the English equivalent
+- Keep responses SHORT — 2-4 sentences maximum
+- Always end with an encouraging question
+- Correct mistakes gently: "Great try! We say ____ instead of ____"
+- Simple vocabulary for beginners to intermediate learners
+- Occasionally: "Magaling!" "Tama!" "Ayos!"
+- NEVER use markdown — speak naturally`;
+}
+
+function checkKeys() {
+  const missing = CLAUDE_API_KEY.includes('paste') || ELEVENLABS_API_KEY.includes('paste');
+  document.getElementById('setupBanner').style.display = missing ? 'block' : 'none';
+  return !missing;
+}
+
+function toggleSettings() {
+  settingsOpen = !settingsOpen;
+  document.getElementById('settingsOverlay').classList.toggle('open', settingsOpen);
+}
+
+function selectVoice(voice) {
+  currentVoice = voice;
+  const cfg = AVATAR_CONFIG[voice];
+  document.getElementById('avatarPhoto').src = AVATAR_IMAGES[voice]; document.getElementById('avatarFallback').textContent = cfg.emoji;
+  document.getElementById('callerName').textContent   = cfg.name;
+  document.getElementById('callerRole').textContent   = cfg.role;
+  document.getElementById('btnFemale').classList.toggle('active', voice==='female');
+  document.getElementById('btnMale').classList.toggle('active',   voice==='male');
+  conversationHistory = [];
+  const greeting = voice==='female'
+    ? "Hi! I am Ate Ana. Ready to practice English together? What is your name?"
+    : "Kumusta! I am Kuya Jose. Let us practice English! What do you want to learn today?";
+  showSpeech(greeting);
+  if (settingsOpen) toggleSettings();
+}
+
+function selectTopic(el, topic) {
+  currentTopic = topic;
+  document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('screenBg').className = `screen-bg ${topic}`;
+  conversationHistory = [];
+  showSpeech(`Great! Let us practice English about ${topic}. Ready? Let us begin!`);
+  if (settingsOpen) toggleSettings();
+}
+
+function wheelAction(action) {
+  const idx = topics.indexOf(currentTopic);
+  if      (action==='menu') toggleSettings();
+  else if (action==='play') sendMessage();
+  else if (action==='next') {
+    const t = topics[(idx+1)%topics.length];
+    selectTopic(document.getElementById('tp-'+t), t);
+  }
+  else if (action==='prev') {
+    const t = topics[(idx-1+topics.length)%topics.length];
+    selectTopic(document.getElementById('tp-'+t), t);
+  }
+}
+
+// ── MAIN SEND ──────────────────────────────────────────────────
+async function sendMessage() {
+  if (isProcessing) return;
+  const input = document.getElementById('userInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  if (!checkKeys()) { showSpeech("Please add your API keys first!"); return; }
+  if (settingsOpen) toggleSettings();
+
+  isProcessing = true;
+  input.value=''; input.style.height='auto';
+  document.getElementById('sendBtn').disabled   = true;
+  document.getElementById('centerBtn').disabled = true;
+
+  conversationHistory.push({ role:'user', content:text });
+  setStatus('thinking'); showSpeech('', true);
+
+  try {
+    // 1. Get text reply from Claude
+    const reply = await callClaude();
+    conversationHistory.push({ role:'assistant', content:reply });
+    showSpeech(reply);
+    setStatus('speaking');
+
+    // 2. Try D-ID lip-sync first; fall back to ElevenLabs audio only
+    const didWorked = await tryDIDLipSync(reply);
+    if (!didWorked) await speakElevenLabs(reply);
+
+    messagesCount++;
+    updateStreak();
+  } catch(err) {
+    showSpeech("Sorry, may problema. Please check your API keys!");
+    console.error(err);
+  }
+
+  setStatus('ready');
+  isProcessing = false;
+  document.getElementById('sendBtn').disabled   = false;
+  document.getElementById('centerBtn').disabled = false;
+  input.focus();
+}
+
+// ── CLAUDE API ─────────────────────────────────────────────────
+async function callClaude() {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':CLAUDE_API_KEY,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({
+      model:'claude-sonnet-4-6',
+      max_tokens:180,
+      system:buildSystemPrompt(),
+      messages:conversationHistory
+    })
+  });
+  if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message); }
+  return (await res.json()).content[0].text;
+}
+
+// ── D-ID LIP SYNC ──────────────────────────────────────────────
+// Flow: create talk → poll until done → play video
+// ── D-ID DEBUG HELPER — shows status on screen ──
+function didDebug(msg) {
+  console.log('[D-ID]', msg);
+  showSpeech('[D-ID] ' + msg);
+}
+
+async function tryDIDLipSync(text) {
+  // Skip if keys not set
+  if (false) { // D-ID is always available via proxy
+    console.log('[D-ID] Keys not set, skipping');
+    return false;
+  }
+
+  try {
+    didDebug('Creating talk...');
+    const body = {
+      source_url: AVATAR_IMAGES[currentVoice],
+      script: {
+        type: 'text',
+        input: text,
+        provider: {
+          type: 'microsoft',
+          voice_id: currentVoice === 'female' ? 'en-US-JennyNeural' : 'en-US-GuyNeural'
+        }
+      },
+      config: { fluent: true, pad_audio: 0.0 }
+    };
+
+    console.log('[D-ID] Request body:', JSON.stringify(body));
+    console.log('[D-ID] Image URL:', AVATAR_IMAGES[currentVoice]);
+
+    // Call our Netlify proxy instead of D-ID directly (avoids CORS)
+    const createRes = await fetch('/.netlify/functions/did-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create', body: body })
+    });
+
+    const createData = await createRes.json();
+    console.log('[D-ID] Create response:', JSON.stringify(createData));
+
+    if (!createRes.ok) {
+      didDebug('Create FAILED: ' + (createData.description || createData.message || createData.error || createRes.status));
+      return false;
+    }
+
+    const { id } = createData;
+    didDebug('Talk created! ID: ' + id + ' — waiting for video...');
+
+    // Poll for completion
+    const videoUrl = await pollDID(id);
+    if (!videoUrl) {
+      didDebug('Polling timed out or errored');
+      return false;
+    }
+
+    didDebug('Video ready! Playing...');
+    await playDIDVideo(videoUrl);
+    return true;
+
+  } catch(e) {
+    console.warn('[D-ID] Exception:', e);
+    didDebug('Error: ' + e.message);
+    return false;
+  }
+}
+
+async function pollDID(id, attempts=30) {
+  for (let i = 0; i < attempts; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      const res = await fetch('/.netlify/functions/did-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'poll', id: id })
+      });
+      const data = await res.json();
+      console.log('[D-ID] Poll ' + (i+1) + ':', data.status, data.result_url || '');
+      if (data.status === 'done' && data.result_url) return data.result_url;
+      if (data.status === 'error') {
+        console.warn('[D-ID] Poll error:', data);
+        return null;
+      }
+    } catch(e) {
+      console.warn('[D-ID] Poll exception:', e);
+    }
+  }
+  return null;
+}
+
+async function playDIDVideo(url) {
+  const vidEl   = document.getElementById('didVideo');
+  const staticEl = document.getElementById('avatarStatic');
+  setSoundwave(true);
+
+  return new Promise(resolve => {
+    vidEl.src = url;
+    vidEl.style.display = 'block';
+    staticEl.style.display = 'none';
+
+    vidEl.onended = () => {
+      vidEl.style.display = 'none';
+      staticEl.style.display = 'flex';
+      setSoundwave(false);
+      resolve();
+    };
+    vidEl.onerror = (e) => {
+      console.warn('[D-ID] Video play error:', e);
+      vidEl.style.display = 'none';
+      staticEl.style.display = 'flex';
+      setSoundwave(false);
+      resolve();
+    };
+    vidEl.play().catch(e => {
+      console.warn('[D-ID] play() failed:', e);
+      resolve();
+    });
+  });
+}
+
+// ── ELEVENLABS (audio only fallback) ──────────────────────────
+async function getElevenLabsBase64(text) {
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_IDS[currentVoice]}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','xi-api-key':ELEVENLABS_API_KEY},
+      body:JSON.stringify({ text, model_id:'eleven_multilingual_v2', voice_settings:{stability:.55,similarity_boost:.8,style:.3} })
+    });
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const bytes  = new Uint8Array(buffer);
+    let b64 = '';
+    for (let i=0; i<bytes.length; i++) b64 += String.fromCharCode(bytes[i]);
+    return btoa(b64);
+  } catch(e) { return null; }
+}
+
+async function speakElevenLabs(text) {
+  try {
+    setSoundwave(true);
+    document.getElementById('avatarPhoto').classList.add('speaking');
+    const b64 = await getElevenLabsBase64(text);
+    if (!b64) throw new Error('no audio');
+    const audio = new Audio('data:audio/mpeg;base64,' + b64);
+    await new Promise(r => { audio.onended=r; audio.onerror=r; audio.play(); });
+  } catch(e) { console.warn('ElevenLabs failed:',e); }
+  finally {
+    setSoundwave(false);
+    document.getElementById('avatarPhoto').classList.remove('speaking');
+  }
+}
+
+// ── UI HELPERS ─────────────────────────────────────────────────
+function showSpeech(text, thinking=false) {
+  const el = document.getElementById('speechText');
+  el.textContent=text; el.className = thinking ? 'thinking' : '';
+}
+function setStatus(state) {
+  document.getElementById('statusDot').className    = `status-dot ${state==='ready'?'':state}`;
+  document.getElementById('statusText').textContent = state==='ready'?'READY':state==='thinking'?'THINKING...':'SPEAKING...';
+}
+function setSoundwave(active) { document.getElementById('soundwave').classList.toggle('active',active); }
+function updateStreak() {
+  if (messagesCount>0&&messagesCount%10===0) {
+    streakCount++; document.getElementById('streakCount').textContent = streakCount;
+  }
+}
+function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,70)+'px'; }
+function updateClock() {
+  const n=new Date();
+  document.getElementById('clockTime').textContent =
+    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+updateClock(); setInterval(updateClock,10000);
+checkKeys();
+</script>
+</body>
+</html>
